@@ -1,6 +1,7 @@
 package dev.mikoto2000.android.usebserialsend;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -51,11 +52,57 @@ public class MainActivity extends AppCompatActivity {
         this.mSendText = this.findViewById(R.id.sendText);
         this.mRecvText = this.findViewById(R.id.recvText);
 
-        this.mSendText.setText("");
-        this.mSendText.setText("initialized...");
-
         mainLooper = new Handler(Looper.getMainLooper());
 
+        initUsb();
+
+        final Handler handler = new Handler();
+        final Runnable r = new Runnable() {
+            int count = 0;
+            @Override
+            public void run() {
+                if (mPort != null) {
+                    try {
+                        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                        final Date date = new Date(System.currentTimeMillis());
+                        final String sendText = df.format(date) + "\n";
+                        mPort.write(sendText.getBytes(StandardCharsets.UTF_8), 1000);
+                        mSendText.append(sendText);
+                    } catch (Exception e) {
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        e.printStackTrace(pw);
+                        mSendText.append(sw.toString());
+                    }
+                }
+                handler.postDelayed(this, 1000);
+            }
+        };
+        handler.post(r);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        initUsb();
+    }
+
+    // 任意のメソッド。恐らくonDestroy等のライフサイクルで実施することになる。
+    @Override
+    protected void onDestroy() {
+        // onDestroyで必要な処理は省略
+        if (mSerialIoManager != null) {
+            this.stopSerial();
+        }
+
+        super.onDestroy();
+    }
+
+    private void initUsb() {
+
+        this.mSendText.setText("");
+        this.mSendText.setText("initializing usb...");
         // Find all available drivers from attached devices.
         // Android標準のAPIを使用して、USBサービスのマネージャを作成します
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -98,41 +145,6 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         this.startSerial();
-
-        final Handler handler = new Handler();
-        final Runnable r = new Runnable() {
-            int count = 0;
-            @Override
-            public void run() {
-                if (mPort != null) {
-                    try {
-                        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                        final Date date = new Date(System.currentTimeMillis());
-                        final String sendText = df.format(date) + "\n";
-                        mPort.write(sendText.getBytes(StandardCharsets.UTF_8), 1000);
-                        mSendText.append(sendText);
-                    } catch (Exception e) {
-                        StringWriter sw = new StringWriter();
-                        PrintWriter pw = new PrintWriter(sw);
-                        e.printStackTrace(pw);
-                        mSendText.append(sw.toString());
-                    }
-                }
-                handler.postDelayed(this, 1000);
-            }
-        };
-        handler.post(r);
-    }
-
-    // 任意のメソッド。恐らくonDestroy等のライフサイクルで実施することになる。
-    @Override
-    protected void onDestroy() {
-        // onDestroyで必要な処理は省略
-        if (mSerialIoManager != null) {
-            this.stopSerial();
-        }
-
-        super.onDestroy();
     }
 
     // シリアル通信開始用のメソッド
