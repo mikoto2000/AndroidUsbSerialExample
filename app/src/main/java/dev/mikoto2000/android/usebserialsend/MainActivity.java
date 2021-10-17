@@ -39,7 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private UsbDeviceConnection usbConnection;
     private Handler mainLooper;
 
-    private TextView mText;
+    private TextView mSendText;
+    private TextView mRecvText;
 
     // 任意のメソッド。恐らくonCreate等のライフサイクルで実施することになる。
     @Override
@@ -47,10 +48,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this.mText = this.findViewById(R.id.textview);
+        this.mSendText = this.findViewById(R.id.sendText);
+        this.mRecvText = this.findViewById(R.id.recvText);
 
-        this.mText.setText("");
-        this.mText.setText("initialized...");
+        this.mSendText.setText("");
+        this.mSendText.setText("initialized...");
 
         mainLooper = new Handler(Looper.getMainLooper());
 
@@ -63,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         // availableDriversにはProverに登録されているかつ、接続されているUSBシリアル変換ケーブルがあるときに値が入ります
         List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
-            mText.append("drivers empty!");
+            mSendText.append("drivers empty!");
             return;
         }
 
@@ -81,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onNewData(byte[] data) {
                 mainLooper.post(() -> {
-                    mText.append(new String(data));
+                    mRecvText.append(new String(data));
                 });
             }
 
@@ -108,12 +110,12 @@ public class MainActivity extends AppCompatActivity {
                         final Date date = new Date(System.currentTimeMillis());
                         final String sendText = df.format(date) + "\n";
                         mPort.write(sendText.getBytes(StandardCharsets.UTF_8), 1000);
-                        mText.append(sendText);
+                        mSendText.append(sendText);
                     } catch (Exception e) {
                         StringWriter sw = new StringWriter();
                         PrintWriter pw = new PrintWriter(sw);
                         e.printStackTrace(pw);
-                        mText.append(sw.toString());
+                        mSendText.append(sw.toString());
                     }
                 }
                 handler.postDelayed(this, 1000);
@@ -146,12 +148,12 @@ public class MainActivity extends AppCompatActivity {
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
                 e.printStackTrace(pw);
-                mText.append(sw.toString());
+                mSendText.append(sw.toString());
             }
-            mText.append("done.\n");
+            mSendText.append("done.\n");
         } else {
             // 適当にエラーハンドリング
-            mText.append("シリアルポートが見つかりませんでした。");
+            mSendText.append("シリアルポートが見つかりませんでした。");
         }
     }
 
